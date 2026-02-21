@@ -1,0 +1,158 @@
+# Continuum PR decision context — Part 10
+#
+# This workflow runs on every pull request and injects relevant Continuum
+# decisions into the PR description as a comment.
+#
+# Setup:
+#   1. Copy this file to .github/workflows/ in your project repository
+#   2. Set repository secrets:
+#      - CONTINUUM_API_URL  (e.g. https://your-continuum.example.com)
+#      - CONTINUUM_API_TOKEN
+#      - CONTINUUM_PROJECT  (project name as configured in Continuum)
+
+name: Continuum PR Decision Context
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  continuum-context:
+    name: Inject decision context
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          BASE=${{ github.event.pull_request.base.sha }}
+          HEAD=${{ github.event.pull_request.head.sha }}
+          FILES=$(git diff --name-only "$BASE" "$HEAD" | tr '\n' ',' | sed 's/,$//')
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch Continuum PR context
+        id: continuum
+        env:
+          CONTINUUM_API_URL: ${{ secrets.CONTINUUM_API_URL }}
+          CONTINUUM_API_TOKEN: ${{ secrets.CONTINUUM_API_TOKEN }}
+          CONTINUUM_PROJECT: ${{ secrets.CONTINUUM_PROJECT }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+        run: |
+          if [ -z "$CONTINUUM_API_URL" ] || [ -z "$CONTINUUM_API_TOKEN" ]; then
+            echo "Continuum not configured — skipping."
+            echo "body=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          ENCODED_FILES=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read().strip()))" <<< "$CHANGED_FILES")
+          PROJECT_PARAM=""
+          if [ -n "$CONTINUUM_PROJECT" ]; then
+            PROJECT_PARAM="&project=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$CONTINUUM_PROJECT'))")"
+          fi
+
+          RESPONSE=$(curl -s --max-time 15 \
+            "${CONTINUUM_API_URL}/api/git/pr-context?files=${ENCODED_FILES}${PROJECT_PARAM}" \
+            -H "Authorization: Bearer ${CONTINUUM_API_TOKEN}" \
+            -H "Accept: application/json" \
+            2>/dev/null || echo "{}")
+
+          # Parse and format comment
+          COMMENT=$(python3 - <<'PYEOF'
+          import json, sys, os
+
+          data_str = """$RESPONSE"""
+          try:
+              data = json.loads(data_str)
+          except Exception:
+              print("_Continuum: could not parse response._")
+              sys.exit(0)
+
+          decisions = data.get("relevant_decisions", [])
+          contradictions = data.get("contradictions", [])
+          stale_ids = set(data.get("stale_decisions", []))
+
+          if not decisions:
+              print("_No Continuum decisions found for the changed files in this PR._")
+              sys.exit(0)
+
+          lines = ["## 🧠 Continuum Decision Context", ""]
+          lines.append(f"Found **{len(decisions)}** decision(s) related to changed files.")
+
+          if contradictions:
+              lines.append(f"\n⚠️  **{len(contradictions)} contradiction(s) detected** — review before merging.")
+
+          lines.append("\n| File | Decision | Scope | Confidence | Status |")
+          lines.append("|------|----------|-------|------------|--------|")
+
+          for d in decisions[:15]:
+              scope = d.get("scope") or "—"
+              conf = round(float(d.get("confidence", 0.5) or 0.5) * 100)
+              status = "⚠️ Stale" if d["id"] in stale_ids else "✅ Current"
+              trigger = (d.get("trigger") or "")[:60].replace("|", "\\|")
+              decision_text = (d.get("decision") or "")[:60].replace("|", "\\|")
+              file_path = (d.get("file_path") or "")
+
+              lines.append(f"| `{file_path}` | {decision_text} | {scope} | {conf}% | {status} |")
+
+          if len(decisions) > 15:
+              lines.append(f"\n_... and {len(decisions) - 15} more. [View all in Continuum]({os.environ.get('CONTINUUM_API_URL', '')}/)_")
+
+          if contradictions:
+              lines.append("\n### ⚠️ Contradictions")
+              for c in contradictions[:5]:
+                  lines.append(f"- **{c.get('a_trigger', '')[:60]}** ↔ **{c.get('b_trigger', '')[:60]}**")
+
+          print("\n".join(lines))
+          PYEOF
+          )
+
+          # Escape newlines for GitHub output
+          COMMENT_ESCAPED="${COMMENT//'%'/'%25'}"
+          COMMENT_ESCAPED="${COMMENT_ESCAPED//$'\n'/'%0A'}"
+          COMMENT_ESCAPED="${COMMENT_ESCAPED//$'\r'/'%0D'}"
+          echo "body=$COMMENT_ESCAPED" >> "$GITHUB_OUTPUT"
+
+      - name: Post PR comment
+        if: steps.continuum.outputs.body != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = decodeURIComponent(`${{ steps.continuum.outputs.body }}`);
+            if (!body || body.trim() === '') return;
+
+            // Find existing Continuum comment to update (avoid duplicate comments)
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.data.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Continuum Decision Context')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }

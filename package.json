@@ -1,0 +1,27 @@
+{
+  "name": "continuum",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "dev:web": "pnpm --filter @continuum/web dev",
+    "dev:api": "cd apps/api && .venv/bin/uvicorn main:app --reload --port 8000",
+    "build": "pnpm --filter @continuum/web build",
+    "lint": "pnpm --filter @continuum/web lint",
+    "typecheck": "pnpm --filter @continuum/web typecheck",
+    "test": "pnpm -r run test",
+    "test:api": "cd apps/api && .venv/bin/pytest tests/ -v",
+    "db:migrate": "cd apps/api && .venv/bin/alembic upgrade head",
+    "db:reset": "cd apps/api && .venv/bin/alembic downgrade base && .venv/bin/alembic upgrade head",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "setup:api": "cd apps/api && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

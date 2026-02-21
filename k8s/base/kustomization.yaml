@@ -1,0 +1,34 @@
+# Base Kustomization for Continuum
+# Apply with: kubectl apply -k k8s/base
+# Or use overlays: kubectl apply -k k8s/overlays/production
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: continuum
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: continuum
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - api-deployment.yaml
+  - api-service.yaml
+  - web-deployment.yaml
+  - web-service.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+
+# Images can be overridden in overlays
+images:
+  - name: continuum/api
+    newName: continuum/api
+    newTag: latest
+  - name: continuum/web
+    newName: continuum/web
+    newTag: latest

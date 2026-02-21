@@ -1,0 +1,275 @@
+# Prometheus Alert Rules for Continuum API
+# 
+# These alerts are designed around SLO-based monitoring:
+# - P0 (Critical): Immediate page, service is degraded
+# - P1 (High): Page during business hours, action needed soon
+# - P2 (Warning): Ticket/notification, investigate when convenient
+
+groups:
+  - name: continuum-api-availability
+    rules:
+      # =========================================================================
+      # Availability Alerts (P0)
+      # =========================================================================
+      
+      - alert: ContinuumAPIHighErrorRate
+        expr: |
+          (
+            sum(rate(continuum_http_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(continuum_http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High 5xx error rate on Continuum API"
+          description: |
+            Error rate is {{ printf "%.2f" $value | humanizePercentage }} 
+            (threshold: 5%) over the last 5 minutes.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/high-error-rate"
+          
+      - alert: ContinuumAPIDown
+        expr: up{job="continuum-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Continuum API is down"
+          description: "The Continuum API target has been down for more than 2 minutes."
+          runbook_url: "https://wiki.example.com/runbooks/continuum/api-down"
+          
+      - alert: ContinuumAPIHealthCheckFailing
+        expr: |
+          probe_success{job="continuum-healthcheck"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Continuum API health check failing"
+          description: "Health check endpoint has been failing for 2 minutes."
+          runbook_url: "https://wiki.example.com/runbooks/continuum/healthcheck-failing"
+
+  - name: continuum-api-latency
+    rules:
+      # =========================================================================
+      # Latency Alerts
+      # =========================================================================
+      
+      - alert: ContinuumAPIHighLatencyP99
+        expr: |
+          histogram_quantile(0.99, sum(rate(continuum_http_request_duration_seconds_bucket[5m])) by (le))
+          > 2.0
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High p99 latency on Continuum API"
+          description: |
+            p99 latency is {{ printf "%.2f" $value }}s (threshold: 2s) 
+            over the last 5 minutes.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/high-latency"
+          
+      - alert: ContinuumAPIHighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum(rate(continuum_http_request_duration_seconds_bucket[5m])) by (le))
+          > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Elevated p95 latency on Continuum API"
+          description: |
+            p95 latency is {{ printf "%.2f" $value }}s (threshold: 1s)
+            over the last 10 minutes.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/elevated-latency"
+
+  - name: continuum-database
+    rules:
+      # =========================================================================
+      # Database Connection Pool Alerts
+      # =========================================================================
+      
+      - alert: ContinuumPostgresPoolExhaustion
+        expr: |
+          (continuum_postgres_pool_checked_out / continuum_postgres_pool_size) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "PostgreSQL connection pool nearing exhaustion"
+          description: |
+            PostgreSQL pool is {{ printf "%.0f" $value | humanizePercentage }} utilized.
+            In use: {{ with query "continuum_postgres_pool_checked_out" }}{{ . | first | value }}{{ end }}
+            Pool size: {{ with query "continuum_postgres_pool_size" }}{{ . | first | value }}{{ end }}
+          runbook_url: "https://wiki.example.com/runbooks/continuum/postgres-pool"
+          
+      - alert: ContinuumPostgresPoolCritical
+        expr: |
+          (continuum_postgres_pool_checked_out / continuum_postgres_pool_size) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "PostgreSQL connection pool critically exhausted"
+          description: |
+            PostgreSQL pool is {{ printf "%.0f" $value | humanizePercentage }} utilized.
+            Requests may start failing due to connection exhaustion.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/postgres-pool-critical"
+          
+      - alert: ContinuumNeo4jPoolExhaustion
+        expr: |
+          (continuum_neo4j_pool_in_use / continuum_neo4j_pool_size) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Neo4j connection pool nearing exhaustion"
+          description: |
+            Neo4j pool is {{ printf "%.0f" $value | humanizePercentage }} utilized.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/neo4j-pool"
+          
+      - alert: ContinuumRedisPoolExhaustion
+        expr: |
+          (continuum_redis_pool_in_use / continuum_redis_pool_size) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis connection pool nearing exhaustion"
+          description: |
+            Redis pool is {{ printf "%.0f" $value | humanizePercentage }} utilized.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/redis-pool"
+
+  - name: continuum-llm
+    rules:
+      # =========================================================================
+      # LLM API Alerts
+      # =========================================================================
+      
+      - alert: ContinuumLLMHighErrorRate
+        expr: |
+          (
+            sum(rate(continuum_llm_requests_total{status="error"}[5m]))
+            /
+            sum(rate(continuum_llm_requests_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High LLM API error rate"
+          description: |
+            LLM error rate is {{ printf "%.2f" $value | humanizePercentage }}
+            (threshold: 10%) over the last 5 minutes.
+            This may indicate NVIDIA NIM API issues or rate limiting.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/llm-errors"
+          
+      - alert: ContinuumLLMHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(continuum_llm_request_duration_seconds_bucket[5m])) by (le))
+          > 30
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High LLM API latency"
+          description: |
+            LLM p95 latency is {{ printf "%.1f" $value }}s (threshold: 30s).
+            This may indicate upstream API issues.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/llm-latency"
+          
+      - alert: ContinuumLLMNoRequests
+        expr: |
+          sum(increase(continuum_llm_requests_total[1h])) == 0
+          and
+          sum(increase(continuum_http_requests_total{endpoint=~"/api/(capture|decisions|ingest).*"}[1h])) > 10
+        for: 30m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "No LLM requests despite API activity"
+          description: |
+            No LLM requests in the last hour despite active API traffic.
+            LLM integration may be broken.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/llm-inactive"
+
+  - name: continuum-cache
+    rules:
+      # =========================================================================
+      # Cache Alerts
+      # =========================================================================
+      
+      - alert: ContinuumLowCacheHitRate
+        expr: |
+          (
+            sum(rate(continuum_cache_hits_total[15m]))
+            /
+            (sum(rate(continuum_cache_hits_total[15m])) + sum(rate(continuum_cache_misses_total[15m])))
+          ) < 0.5
+        for: 30m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Low cache hit rate"
+          description: |
+            Cache hit rate is {{ printf "%.2f" $value | humanizePercentage }}
+            (threshold: 50%) over the last 30 minutes.
+            This may indicate cache configuration issues or changed access patterns.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/cache-hit-rate"
+          
+      - alert: ContinuumCacheNotWorking
+        expr: |
+          sum(rate(continuum_cache_hits_total[1h])) == 0
+          and
+          sum(rate(continuum_cache_misses_total[1h])) == 0
+          and
+          sum(rate(continuum_http_requests_total[1h])) > 100
+        for: 30m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Cache appears inactive"
+          description: |
+            No cache hits or misses recorded despite active traffic.
+            Cache instrumentation or Redis connection may be broken.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/cache-inactive"
+
+  - name: continuum-entity-resolution
+    rules:
+      # =========================================================================
+      # Entity Resolution Alerts
+      # =========================================================================
+      
+      - alert: ContinuumLowEntityResolutionSuccess
+        expr: |
+          (
+            sum(rate(continuum_entity_resolution_total{result="found"}[1h]))
+            /
+            sum(rate(continuum_entity_resolution_total[1h]))
+          ) < 0.3
+        for: 1h
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Low entity resolution success rate"
+          description: |
+            Entity resolution success rate is {{ printf "%.2f" $value | humanizePercentage }}
+            (threshold: 30%) over the last hour.
+            Many entities are being created as new instead of matching existing ones.
+          runbook_url: "https://wiki.example.com/runbooks/continuum/entity-resolution"

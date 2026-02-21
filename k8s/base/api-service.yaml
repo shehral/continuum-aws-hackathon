@@ -1,0 +1,19 @@
+# API Service - exposes API pods internally
+apiVersion: v1
+kind: Service
+metadata:
+  name: continuum-api
+  namespace: continuum
+  labels:
+    app.kubernetes.io/name: continuum
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: continuum
+    app.kubernetes.io/component: api

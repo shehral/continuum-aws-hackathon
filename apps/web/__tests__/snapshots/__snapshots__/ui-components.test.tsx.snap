@@ -1,0 +1,235 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Badge Component Snapshots > renders badge with custom className 1`] = `
+<div>
+  <div
+    class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent hover:bg-primary/80 bg-cyan-500 text-white"
+  >
+    Custom Badge
+  </div>
+</div>
+`;
+
+exports[`Badge Component Snapshots > renders default badge 1`] = `
+<div>
+  <div
+    class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80"
+  >
+    Default Badge
+  </div>
+</div>
+`;
+
+exports[`Badge Component Snapshots > renders destructive badge 1`] = `
+<div>
+  <div
+    class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80"
+  >
+    Destructive Badge
+  </div>
+</div>
+`;
+
+exports[`Badge Component Snapshots > renders outline badge 1`] = `
+<div>
+  <div
+    class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground"
+  >
+    Outline Badge
+  </div>
+</div>
+`;
+
+exports[`Badge Component Snapshots > renders secondary badge 1`] = `
+<div>
+  <div
+    class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
+  >
+    Secondary Badge
+  </div>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders button as child (asChild) 1`] = `
+<div>
+  <a
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+    href="/test"
+  >
+    Link Button
+  </a>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders default button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+  >
+    Click Me
+  </button>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders disabled button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+    disabled=""
+  >
+    Disabled
+  </button>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders ghost button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+  >
+    Ghost
+  </button>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders icon button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10"
+  >
+    +
+  </button>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders large button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 rounded-md px-8"
+  >
+    Large
+  </button>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders link button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-primary underline-offset-4 hover:underline h-10 px-4 py-2"
+  >
+    Link
+  </button>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders outline button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+  >
+    Outline
+  </button>
+</div>
+`;
+
+exports[`Button Component Snapshots > renders small button 1`] = `
+<div>
+  <button
+    class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3"
+  >
+    Small
+  </button>
+</div>
+`;
+
+exports[`Card Component Snapshots > renders basic card 1`] = `
+<div>
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm"
+  >
+    <div
+      class="p-6 pt-0"
+    >
+      Card Content
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Card Component Snapshots > renders card with full header 1`] = `
+<div>
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm"
+  >
+    <div
+      class="flex flex-col space-y-1.5 p-6"
+    >
+      <h3
+        class="text-2xl font-semibold leading-none tracking-tight"
+      >
+        Card Title
+      </h3>
+      <p
+        class="text-sm text-muted-foreground"
+      >
+        This is a description of the card.
+      </p>
+    </div>
+    <div
+      class="p-6 pt-0"
+    >
+      Card Content
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Card Component Snapshots > renders card with header 1`] = `
+<div>
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm"
+  >
+    <div
+      class="flex flex-col space-y-1.5 p-6"
+    >
+      <h3
+        class="text-2xl font-semibold leading-none tracking-tight"
+      >
+        Card Title
+      </h3>
+    </div>
+    <div
+      class="p-6 pt-0"
+    >
+      Card Content
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Card Component Snapshots > renders styled card 1`] = `
+<div>
+  <div
+    class="rounded-lg border text-card-foreground shadow-sm bg-white/[0.03] backdrop-blur-xl border-white/[0.06]"
+  >
+    <div
+      class="flex flex-col space-y-1.5 p-6"
+    >
+      <h3
+        class="text-2xl font-semibold leading-none tracking-tight text-slate-100"
+      >
+        Styled Title
+      </h3>
+    </div>
+    <div
+      class="p-6 pt-0"
+    >
+      <p
+        class="text-slate-400"
+      >
+        Styled content
+      </p>
+    </div>
+  </div>
+</div>
+`;

@@ -1,0 +1,103 @@
+# Staging Overlay for Continuum
+# Mirror of production with lower resources and separate namespace
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: continuum-staging
+
+resources:
+  - ../../base
+
+# Staging-specific labels
+commonLabels:
+  environment: staging
+
+# Staging namespace override
+nameSuffix: ""
+
+# Override images with staging tags
+images:
+  - name: continuum/api
+    newName: ghcr.io/your-org/continuum-api
+    newTag: staging
+  - name: continuum/web
+    newName: ghcr.io/your-org/continuum-web
+    newTag: staging
+
+# Patches for staging environment
+patches:
+  # Staging replicas (fewer than production)
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: continuum-api
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: continuum-web
+  # Staging resource limits (lower than production)
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+    target:
+      kind: Deployment
+      name: continuum-api
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+    target:
+      kind: Deployment
+      name: continuum-web
+  # Staging HPA settings
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 5
+    target:
+      kind: HorizontalPodAutoscaler
+      name: continuum-api-hpa
+  # Staging ingress host
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging.continuum.example.com
+      - op: replace
+        path: /spec/rules/1/host
+        value: api-staging.continuum.example.com
+    target:
+      kind: Ingress
+      name: continuum-ingress
+
+# ConfigMap patches for staging
+configMapGenerator:
+  - name: continuum-config
+    behavior: merge
+    literals:
+      - DEBUG=true
+      - CORS_ORIGINS=https://staging.continuum.example.com
+      - RATE_LIMIT_REQUESTS=60
+      - LLM_CACHE_ENABLED=true
+      - ENVIRONMENT=staging

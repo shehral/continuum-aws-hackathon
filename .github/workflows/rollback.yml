@@ -1,0 +1,222 @@
+# =============================================================================
+# Rollback Workflow - Continuum Knowledge Management Platform
+# =============================================================================
+# Manual rollback workflow for emergency situations
+# Supports rollback to previous revision or specific version
+# =============================================================================
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to rollback"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      rollback_type:
+        description: "Rollback type"
+        required: true
+        type: choice
+        options:
+          - previous  # Rollback to previous revision
+          - specific  # Rollback to specific version
+      version:
+        description: "Specific version (required if rollback_type is 'specific')"
+        required: false
+        type: string
+      reason:
+        description: "Reason for rollback"
+        required: true
+        type: string
+
+env:
+  KUBE_NAMESPACE: continuum
+
+jobs:
+  validate:
+    name: Validate Rollback Request
+    runs-on: ubuntu-latest
+    outputs:
+      approved: ${{ steps.validate.outputs.approved }}
+    steps:
+      - name: Validate inputs
+        id: validate
+        run: |
+          if [[ "${{ inputs.rollback_type }}" == "specific" && -z "${{ inputs.version }}" ]]; then
+            echo "Error: Version is required for specific rollback"
+            exit 1
+          fi
+          echo "approved=true" >> $GITHUB_OUTPUT
+          echo "Rollback request validated"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Type: ${{ inputs.rollback_type }}"
+          echo "Version: ${{ inputs.version }}"
+          echo "Reason: ${{ inputs.reason }}"
+
+  rollback:
+    name: Execute Rollback
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: needs.validate.outputs.approved == 'true'
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.29.0"
+
+      - name: Configure Kubernetes credentials
+        run: |
+          mkdir -p $HOME/.kube
+          if [[ "${{ inputs.environment }}" == "production" ]]; then
+            echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+          else
+            echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
+          fi
+          chmod 600 $HOME/.kube/config
+
+      - name: Set namespace
+        run: |
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            echo "NAMESPACE=continuum-staging" >> $GITHUB_ENV
+          else
+            echo "NAMESPACE=continuum" >> $GITHUB_ENV
+          fi
+
+      - name: Get current deployment info
+        id: current
+        run: |
+          echo "Current API deployment:"
+          kubectl get deployment continuum-api -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}'
+          echo ""
+          
+          echo "Current Web deployment:"
+          kubectl get deployment continuum-web -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}'
+          echo ""
+          
+          echo "Deployment history (API):"
+          kubectl rollout history deployment/continuum-api -n ${{ env.NAMESPACE }}
+          
+          API_IMAGE=$(kubectl get deployment continuum-api -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}')
+          WEB_IMAGE=$(kubectl get deployment continuum-web -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}')
+          echo "current_api_image=$API_IMAGE" >> $GITHUB_OUTPUT
+          echo "current_web_image=$WEB_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Rollback to previous revision
+        if: inputs.rollback_type == 'previous'
+        run: |
+          echo "Rolling back to previous revision..."
+          
+          kubectl rollout undo deployment/continuum-api -n ${{ env.NAMESPACE }}
+          kubectl rollout undo deployment/continuum-web -n ${{ env.NAMESPACE }}
+          
+          echo "Waiting for rollback to complete..."
+          kubectl rollout status deployment/continuum-api -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/continuum-web -n ${{ env.NAMESPACE }} --timeout=300s
+          
+          echo "Rollback complete!"
+
+      - name: Rollback to specific version
+        if: inputs.rollback_type == 'specific'
+        run: |
+          echo "Rolling back to version ${{ inputs.version }}..."
+          
+          REGISTRY="ghcr.io/${{ github.repository }}"
+          
+          kubectl set image deployment/continuum-api \
+            api=${REGISTRY}/api:${{ inputs.version }} \
+            -n ${{ env.NAMESPACE }}
+          
+          kubectl set image deployment/continuum-web \
+            web=${REGISTRY}/web:${{ inputs.version }} \
+            -n ${{ env.NAMESPACE }}
+          
+          echo "Waiting for rollback to complete..."
+          kubectl rollout status deployment/continuum-api -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/continuum-web -n ${{ env.NAMESPACE }} --timeout=300s
+          
+          echo "Rollback complete!"
+
+      - name: Verify rollback
+        run: |
+          echo "Verifying rollback..."
+          
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/name=continuum
+          
+          echo "New API image:"
+          kubectl get deployment continuum-api -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}'
+          echo ""
+          
+          echo "New Web image:"
+          kubectl get deployment continuum-web -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}'
+          echo ""
+
+      - name: Record rollback
+        run: |
+          kubectl annotate deployment continuum-api -n ${{ env.NAMESPACE }} \
+            kubernetes.io/change-cause="Rollback by ${{ github.actor }}: ${{ inputs.reason }}" --overwrite
+          kubectl annotate deployment continuum-web -n ${{ env.NAMESPACE }} \
+            kubernetes.io/change-cause="Rollback by ${{ github.actor }}: ${{ inputs.reason }}" --overwrite
+
+  notify:
+    name: Notify Rollback
+    runs-on: ubuntu-latest
+    needs: [rollback]
+    if: always()
+
+    steps:
+      - name: Send Slack notification
+        if: ${{ vars.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Rollback Executed",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\n${{ inputs.environment }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Type:*\n${{ inputs.rollback_type }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Initiated by:*\n${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Reason:*\n${{ inputs.reason }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Status:* ${{ needs.rollback.result == 'success' && 'Successful' || 'Failed' }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

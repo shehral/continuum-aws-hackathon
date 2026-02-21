@@ -1,0 +1,114 @@
+# Production Overlay for Continuum
+# Higher resources, more replicas, TLS enabled
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: continuum
+
+resources:
+  - ../../base
+
+# Production-specific labels
+commonLabels:
+  environment: production
+
+# Override images with production tags (use specific versions, not latest)
+images:
+  - name: continuum/api
+    newName: ghcr.io/your-org/continuum-api
+    newTag: v0.1.0
+  - name: continuum/web
+    newName: ghcr.io/your-org/continuum-web
+    newTag: v0.1.0
+
+# Patches for production environment
+patches:
+  # Production replicas
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: continuum-api
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: continuum-web
+  # Production resource limits (higher)
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+    target:
+      kind: Deployment
+      name: continuum-api
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+    target:
+      kind: Deployment
+      name: continuum-web
+  # Production HPA settings
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+    target:
+      kind: HorizontalPodAutoscaler
+      name: continuum-api-hpa
+  # Enable TLS in ingress
+  - patch: |-
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - continuum.example.com
+              - api.continuum.example.com
+            secretName: continuum-tls
+      - op: add
+        path: /metadata/annotations/nginx.ingress.kubernetes.io~1ssl-redirect
+        value: "true"
+      - op: add
+        path: /metadata/annotations/nginx.ingress.kubernetes.io~1force-ssl-redirect
+        value: "true"
+    target:
+      kind: Ingress
+      name: continuum-ingress
+  # Production PDB - ensure at least 2 pods available
+  - patch: |-
+      - op: replace
+        path: /spec/minAvailable
+        value: 2
+    target:
+      kind: PodDisruptionBudget
+      name: continuum-api-pdb
+
+# ConfigMap patches for production
+configMapGenerator:
+  - name: continuum-config
+    behavior: merge
+    literals:
+      - DEBUG=false
+      - CORS_ORIGINS=https://continuum.example.com
+      - RATE_LIMIT_REQUESTS=60
+      - LLM_CACHE_ENABLED=true

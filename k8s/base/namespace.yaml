@@ -1,0 +1,9 @@
+# Namespace for Continuum application
+# Isolates all Continuum resources from other applications
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: continuum
+  labels:
+    app.kubernetes.io/name: continuum
+    app.kubernetes.io/component: namespace

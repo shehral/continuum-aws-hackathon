@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "continuum": {
+      "command": "apps/mcp/.venv/bin/python",
+      "args": ["apps/mcp/server.py"],
+      "env": {
+        "CONTINUUM_API_URL": "http://localhost:8000"
+      }
+    }
+  }
+}

@@ -1,0 +1,66 @@
+# Ingress - routes external traffic to services
+# Supports both nginx-ingress and AWS ALB Ingress Controller
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: continuum-ingress
+  namespace: continuum
+  labels:
+    app.kubernetes.io/name: continuum
+    app.kubernetes.io/component: ingress
+  annotations:
+    # nginx-ingress annotations
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    # Enable CORS handling at ingress level
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    # Rate limiting at ingress level
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # SSL redirect (uncomment for production with TLS)
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # AWS ALB annotations (uncomment if using AWS)
+    # kubernetes.io/ingress.class: alb
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/healthcheck-path: /health/live
+spec:
+  ingressClassName: nginx
+  # TLS configuration (uncomment for production)
+  # tls:
+  #   - hosts:
+  #       - continuum.example.com
+  #       - api.continuum.example.com
+  #     secretName: continuum-tls
+  rules:
+    # Frontend - main domain
+    - host: continuum.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: continuum-web
+                port:
+                  number: 3000
+    # API - subdomain
+    - host: api.continuum.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: continuum-api
+                port:
+                  number: 8000

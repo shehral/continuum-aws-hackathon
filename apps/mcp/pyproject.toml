@@ -1,0 +1,9 @@
+[project]
+name = "continuum-mcp"
+version = "0.1.0"
+description = "MCP server for Continuum architectural knowledge graph"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.2.0",
+    "httpx>=0.28.0",
+]

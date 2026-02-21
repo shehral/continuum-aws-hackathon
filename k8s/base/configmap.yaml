@@ -1,0 +1,44 @@
+# ConfigMap for non-sensitive configuration
+# Environment-specific values should be overridden in overlays
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: continuum-config
+  namespace: continuum
+  labels:
+    app.kubernetes.io/name: continuum
+    app.kubernetes.io/component: config
+data:
+  # Application settings
+  DEBUG: "false"
+  
+  # NVIDIA NIM Model Configuration
+  NVIDIA_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5"
+  NVIDIA_EMBEDDING_MODEL: "nvidia/llama-3.2-nv-embedqa-1b-v2"
+  
+  # Rate limiting
+  RATE_LIMIT_REQUESTS: "30"
+  RATE_LIMIT_WINDOW: "60"
+  
+  # LLM settings
+  LLM_MAX_RETRIES: "3"
+  LLM_RETRY_BASE_DELAY: "1.0"
+  MAX_PROMPT_TOKENS: "12000"
+  LLM_CACHE_ENABLED: "true"
+  LLM_CACHE_TTL: "86400"
+  
+  # Embedding settings
+  EMBEDDING_CACHE_TTL: "2592000"
+  EMBEDDING_BATCH_SIZE: "32"
+  
+  # Similarity thresholds
+  SIMILARITY_THRESHOLD: "0.85"
+  HIGH_CONFIDENCE_SIMILARITY_THRESHOLD: "0.90"
+  FUZZY_MATCH_THRESHOLD: "0.85"
+  EMBEDDING_SIMILARITY_THRESHOLD: "0.90"
+  
+  # CORS - override in production overlay
+  CORS_ORIGINS: "http://localhost:3000"
+  
+  # Frontend configuration
+  NODE_ENV: "production"

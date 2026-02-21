@@ -1,0 +1,96 @@
+# Development Overlay for Continuum
+# Lower resource limits, single replicas, debug enabled
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: continuum
+
+resources:
+  - ../../base
+
+# Development-specific labels
+commonLabels:
+  environment: development
+
+# Override images with development tags
+images:
+  - name: continuum/api
+    newName: continuum/api
+    newTag: dev
+  - name: continuum/web
+    newName: continuum/web
+    newTag: dev
+
+# Patches for development environment
+patches:
+  # Reduce replicas for development
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: continuum-api
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: continuum-web
+  # Reduce HPA for development
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+    target:
+      kind: HorizontalPodAutoscaler
+      name: continuum-api-hpa
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+    target:
+      kind: HorizontalPodAutoscaler
+      name: continuum-web-hpa
+  # Lower resource limits for development
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+    target:
+      kind: Deployment
+      name: continuum-api
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+    target:
+      kind: Deployment
+      name: continuum-web
+
+# ConfigMap patches for development
+configMapGenerator:
+  - name: continuum-config
+    behavior: merge
+    literals:
+      - DEBUG=true
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000

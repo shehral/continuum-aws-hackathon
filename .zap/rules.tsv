@@ -1,0 +1,30 @@
+# ZAP Baseline Scan Rules Configuration
+# Format: rule_id	action	alert_threshold
+# Actions: IGNORE, WARN, FAIL
+# Alert Thresholds: IGNORE, LOW, MEDIUM, HIGH
+
+# Informational findings - ignore
+10020	IGNORE	# X-Frame-Options Header Not Set (handled by Next.js)
+10021	IGNORE	# X-Content-Type-Options Header Missing
+10038	IGNORE	# Content Security Policy (CSP) Header Not Set
+10098	IGNORE	# Cross-Domain Misconfiguration
+
+# Low severity - warn
+10035	WARN	# Strict-Transport-Security Header Not Set
+10036	WARN	# Server Leaks Version Information
+10037	WARN	# Server Leaks Information via "X-Powered-By" HTTP Response Header
+10096	WARN	# Timestamp Disclosure - Unix
+
+# Medium severity - fail
+10016	FAIL	# Web Browser XSS Protection Not Enabled
+10017	FAIL	# Cross-Domain JavaScript Source File Inclusion
+90033	FAIL	# Loosely Scoped Cookie
+
+# High severity - always fail
+10011	FAIL	# Cookie Without Secure Flag
+10012	FAIL	# Password Autocomplete in Browser
+40012	FAIL	# Cross Site Scripting (Reflected)
+40014	FAIL	# Cross Site Scripting (Persistent)
+40018	FAIL	# SQL Injection
+90020	FAIL	# Remote OS Command Injection
+90023	FAIL	# XML External Entity Attack
