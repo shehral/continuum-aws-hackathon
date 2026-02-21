@@ -2,7 +2,7 @@
 
 **AI-powered knowledge graph that captures engineering decisions from human-AI coding sessions using Amazon Bedrock, Strands Agents SDK, and Neo4j.**
 
-AWS Hackathon 2025
+AWS Hackathon 2025 | **Team Continuum**: Ali Shehral, Himalaya Dua, Karthik Ravi
 
 ---
 
@@ -322,4 +322,4 @@ All rights reserved. See [LICENSE](./LICENSE) for details.
 
 ---
 
-*Built by Ali Shehral (shehral.m@northeastern.edu) — Northeastern University, HCAI Lab*
+*Built by Team Continuum — Ali Shehral, Himalaya Dua, Karthik Ravi | Northeastern University*
