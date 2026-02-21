@@ -2,7 +2,7 @@
 
 **AI-powered knowledge graph that captures engineering decisions from human-AI coding sessions using Amazon Bedrock, Strands Agents SDK, and Neo4j.**
 
-AWS Hackathon 2026 | **Team Continuum**: Ali Shehral, Himalaya Dua, Karthik Ravi
+AWS Hackathon 2026 | Product: **Continuum** | **Team DeepMind Ace**: Ali Shehral, Himalaya Dua, Karthik Ravi
 
 ---
 
@@ -118,6 +118,10 @@ NVIDIA **NV-EmbedQA 1B** (2048 dimensions) provides the embedding backbone for:
 - BGE reranking of hybrid search results
 
 Embeddings stay on NVIDIA regardless of LLM provider to avoid re-indexing the vector store.
+
+### Test Cases
+
+![Test cases using TestSprite](media/image.png)
 
 ---
 
@@ -322,4 +326,4 @@ All rights reserved. See [LICENSE](./LICENSE) for details.
 
 ---
 
-*Built by Team Continuum — Ali Shehral, Himalaya Dua, Karthik Ravi | Northeastern University*
+*Built by Team DeepMind Ace — Ali Shehral, Himalaya Dua, Karthik Ravi | Northeastern University*
